@@ -3,28 +3,30 @@
 #include <algorithm>
 #include <random>
 
-std::pair<Card::Rank, Card::Suit> Card::decode(uint8_t value) {
-  Card::Suit suit = static_cast<Card::Suit>((value & 0xC0) >> 6);
-  Card::Rank rank = static_cast<Card::Rank>(value & 0x3F);
-
-  return std::make_pair(rank, suit);
-}
+const std::vector<std::string> kSuitNames = {"\u2665", "\u2666", "\u2663",
+                                             "\u2660"};
+const std::vector<std::string> kRankNames = {"A", "2", "3",  "4", "5", "6", "7",
+                                             "8", "9", "10", "J", "Q", "K"};
 
 uint8_t Card::encode(Card::Rank rank, Card::Suit suit) {
-  return (suit << 6) + rank;
+  return (static_cast<uint8_t>(suit) << 6) + static_cast<uint8_t>(rank);
+}
+
+Card::Rank Card::rank() const { return static_cast<Card::Rank>(data & 0x3F); }
+
+Card::Suit Card::suit() const {
+  return static_cast<Card::Suit>((data & 0xC0) >> 6);
 }
 
 std::vector<Card> get_new_deck() {
   std::vector<Card> temp;
 
-  temp.reserve(Card::Rank::rLast * Card::Suit::Last);
+  temp.reserve((Card::Rank::Last - Card::Rank::First) *
+               (Card::Suit::Last - Card::Suit::First));
 
-  for (uint8_t suit = Card::Suit::Hearts; suit < Card::Suit::Last; ++suit) {
-    for (uint8_t rank = Card::Rank::rA; rank < Card::Rank::rLast; ++rank) {
-      temp.emplace_back(static_cast<Card::Rank>(rank),
-                        static_cast<Card::Suit>(suit));
-    }
-  }
+  for (auto suit = Card::Suit::First; suit < Card::Suit::Last; ++suit)
+    for (auto rank = Card::Rank::First; rank < Card::Rank::Last; ++rank)
+      temp.emplace_back(rank, suit);
 
   return temp;
 }
@@ -38,11 +40,9 @@ void shuffle(std::vector<Card>& deck) {
 bool isFlush(const std::vector<Card>& cards) {
   if (cards.size() == 0) return false;
 
-  const std::pair<Card::Rank, Card::Suit> first = Card::decode(cards[0].data);
-
-  for (std::size_t i = 1; i < cards.size(); ++i) {
-    if (first.second != Card::decode(cards[i].data).second) return false;
-  }
+  const Card::Suit first_suit = cards[0].suit();
+  for (const auto& card : cards)
+    if (first_suit != card.suit()) return false;
 
   return true;
 }
@@ -50,92 +50,66 @@ bool isFlush(const std::vector<Card>& cards) {
 bool isStraight(const std::vector<Card>& cards) {
   if (cards.size() == 0) return false;
 
-  uint8_t min_rank = Card::Rank::rA;
-  uint8_t max_rank = Card::Rank::rA;
-  std::pair<Card::Rank, Card::Suit> temp;
+  Card::Rank min_rank = cards[0].rank();
+  Card::Rank max_rank = cards[0].rank();
 
   for (const auto& card : cards) {
-    temp = Card::decode(card.data);
-    if (temp.first < min_rank) {
-      min_rank = temp.first;
-    } else if (temp.first > max_rank) {
-      max_rank = temp.first;
+    if (card.rank() < min_rank) {
+      min_rank = card.rank();
+    } else if (card.rank() > max_rank) {
+      max_rank = card.rank();
     }
   }
+
+  if (max_rank == Card::Rank::rK && min_rank == Card::Rank::rA) return true;
 
   return cards.size() == (max_rank - min_rank + 1);
 }
 
+uint8_t operator-(const Card::Rank& lh, const Card::Rank& rh) {
+  return static_cast<uint8_t>(lh) - static_cast<uint8_t>(rh);
+}
+
+uint8_t operator-(const Card::Suit& lh, const Card::Suit& rh) {
+  return static_cast<uint8_t>(lh) - static_cast<uint8_t>(rh);
+}
+
+Card::Rank& operator++(Card::Rank& rank) {
+  if (rank == Card::Rank::Last) return rank;
+  rank = static_cast<Card::Rank>(static_cast<uint8_t>(rank) + 1);
+  return rank;
+}
+
+Card::Rank operator++(Card::Rank& rank, int) {
+  Card::Rank temp = rank;
+  ++rank;
+  return temp;
+}
+
+Card::Suit& operator++(Card::Suit& suit) {
+  if (suit == Card::Suit::Last) return suit;
+  suit = static_cast<Card::Suit>(static_cast<uint8_t>(suit) + 1);
+  return suit;
+}
+
+Card::Suit operator++(Card::Suit& suit, int) {
+  Card::Suit temp = suit;
+  ++suit;
+  return temp;
+}
+
 std::ostream& operator<<(std::ostream& os, const Card::Rank& value) {
-  switch (value) {
-    case Card::Rank::r2:
-      os << '2';
-      break;
-    case Card::Rank::r3:
-      os << '3';
-      break;
-    case Card::Rank::r4:
-      os << '4';
-      break;
-    case Card::Rank::r5:
-      os << '5';
-      break;
-    case Card::Rank::r6:
-      os << '6';
-      break;
-    case Card::Rank::r7:
-      os << '7';
-      break;
-    case Card::Rank::r8:
-      os << '8';
-      break;
-    case Card::Rank::r9:
-      os << '9';
-      break;
-    case Card::Rank::r10:
-      os << "10";
-      break;
-    case Card::Rank::rJ:
-      os << 'J';
-      break;
-    case Card::Rank::rQ:
-      os << 'Q';
-      break;
-    case Card::Rank::rK:
-      os << 'K';
-      break;
-    case Card::Rank::rA:
-      os << 'A';
-      break;
-    default:
-      break;
-  }
+  os << kRankNames[value - Card::Rank::First];
   return os;
 }
 
 std::ostream& operator<<(std::ostream& os, const Card::Suit& value) {
-  switch (value) {
-    case Card::Suit::Hearts:
-      os << 'H';
-      break;
-    case Card::Suit::Diamonds:
-      os << 'D';
-      break;
-    case Card::Suit::Clubs:
-      os << 'C';
-      break;
-    case Card::Suit::Spades:
-      os << 'S';
-      break;
-    default:
-      break;
-  }
+  os << kSuitNames[value - Card::Suit::First];
   return os;
 }
 
 std::ostream& operator<<(std::ostream& os, const Card& card) {
-  std::pair<Card::Rank, Card::Suit> temp = Card::decode(card.data);
-  os << temp.first << '-' << temp.second;
+  os << card.rank() << card.suit();
   return os;
 }
 
