@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <random>
+#include <stdexcept>
 
 const std::vector<std::string> kSuitNames = {"\u2665", "\u2666", "\u2663",
                                              "\u2660"};
@@ -48,8 +49,16 @@ bool isFlush(const std::vector<Card>& cards) {
 }
 
 bool isStraight(const std::vector<Card>& cards) {
-  if (cards.size() == 0) return false;
+  // The check is passed if total sum of ranks
+  // is equal to the sum of arithmetic progression members
+  // "min rank ... max rank".
+  // For case "min rank = A and max rank = K"
+  // decrease arithmetic progression by 1 from begining
+  // and compare it members sum + rank A with total sum of ranks.
 
+  if (cards.size() < 5) return false;
+
+  std::size_t total = 0;
   Card::Rank min_rank = cards[0].rank();
   Card::Rank max_rank = cards[0].rank();
 
@@ -59,19 +68,49 @@ bool isStraight(const std::vector<Card>& cards) {
     } else if (card.rank() > max_rank) {
       max_rank = card.rank();
     }
+    total += card.rank();
   }
 
-  if (max_rank == Card::Rank::rK && min_rank == Card::Rank::rA) return true;
+  if (max_rank == Card::Rank::rK && min_rank == Card::Rank::rA) {
+    min_rank = max_rank - (cards.size() - 2);
+    return total ==
+           ((min_rank + max_rank) * (cards.size() - 1) / 2 + Card::Rank::rA);
+  }
 
-  return cards.size() == (max_rank - min_rank + 1);
+  return total == ((min_rank + max_rank) * cards.size() / 2);
 }
 
 uint8_t operator-(const Card::Rank& lh, const Card::Rank& rh) {
   return static_cast<uint8_t>(lh) - static_cast<uint8_t>(rh);
 }
 
+uint8_t operator+(const Card::Rank& lh, const Card::Rank& rh) {
+  return static_cast<uint8_t>(lh) + static_cast<uint8_t>(rh);
+}
+
+uint64_t operator*(uint64_t lh, const Card::Rank& rh) {
+  return lh * static_cast<uint8_t>(rh);
+}
+
+uint64_t operator*(const Card::Rank& lh, uint64_t rh) { return rh * lh; }
+
 uint8_t operator-(const Card::Suit& lh, const Card::Suit& rh) {
   return static_cast<uint8_t>(lh) - static_cast<uint8_t>(rh);
+}
+
+uint64_t operator+=(uint64_t& lh, const Card::Rank& rh) {
+  lh = lh + static_cast<uint8_t>(rh);
+  return lh;
+}
+
+uint64_t operator+(uint64_t lh, const Card::Rank& rh) {
+  return lh + static_cast<uint8_t>(rh);
+}
+
+Card::Rank operator-(const Card::Rank& lh, uint64_t rh) {
+  if (static_cast<uint8_t>(lh) <= rh)
+    throw std::range_error("Result is out of range Card::Rank");
+  return static_cast<Card::Rank>(static_cast<uint8_t>(lh) - rh);
 }
 
 Card::Rank& operator++(Card::Rank& rank) {

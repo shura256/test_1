@@ -6,7 +6,7 @@
 
 struct Card {
   enum struct Rank : uint8_t {
-    First = 0,
+    First = 1,
     rA = First,
     r2,
     r3,
@@ -48,10 +48,20 @@ bool isFlush(const std::vector<Card>& cards);
 bool isStraight(const std::vector<Card>& cards);
 
 uint8_t operator-(const Card::Rank& lh, const Card::Rank& rh);
-uint8_t operator-(const Card::Suit& lh, const Card::Suit& rh);
+uint8_t operator+(const Card::Rank& lh, const Card::Rank& rh);
+
+uint64_t operator*(uint64_t lh, const Card::Rank& rh);
+uint64_t operator*(const Card::Rank& lh, uint64_t rh);
+
+uint64_t operator+=(uint64_t& lh, const Card::Rank& rh);
+uint64_t operator+(uint64_t lh, const Card::Rank& rh);
+
+Card::Rank operator-(const Card::Rank& lh, uint64_t rh);
 
 Card::Rank& operator++(Card::Rank& rank);
 Card::Rank operator++(Card::Rank& rank, int);
+
+uint8_t operator-(const Card::Suit& lh, const Card::Suit& rh);
 
 Card::Suit& operator++(Card::Suit& suit);
 Card::Suit operator++(Card::Suit& suit, int);

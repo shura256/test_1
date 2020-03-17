@@ -75,5 +75,17 @@ int main() {
   std::cout << "is staight: " << isStraight(cards) << std::endl;
   std::cout << std::endl;
 
+  cards.clear();
+  cards = {
+      Card(Card::Rank::r8, Card::Suit::Hearts),
+      Card(Card::Rank::rK, Card::Suit::Diamonds),
+      Card(Card::Rank::rA, Card::Suit::Clubs),
+      Card(Card::Rank::rJ, Card::Suit::Spades),
+      Card(Card::Rank::rQ, Card::Suit::Hearts),
+  };
+  std::cout << "Cards: " << cards << std::endl;
+  std::cout << "is staight: " << isStraight(cards) << std::endl;
+  std::cout << std::endl;
+
   return 0;
 }
